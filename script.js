@@ -7,7 +7,7 @@ const thead = document.querySelector("thead tr"),
   datePeriod = document.querySelector(".date"),
   startDate = datePeriod.querySelector(".startDate"),
   endDate = datePeriod.querySelector(".endDate"),
-  curID = [145, 292, 298]; // id currencies usd, eur, rub
+  curID = [431, 451, 456]; // id currencies usd, eur, rub
 
 let endDateValue = (endDate.value = `${toInputDate()}`),
   startDateValue = (startDate.value = `${getDaysPast(6)}`),
