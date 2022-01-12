@@ -8,20 +8,25 @@ const thead = document.querySelector("thead tr"),
   startDate = datePeriod.querySelector(".startDate"),
   endDate = datePeriod.querySelector(".endDate"),
   curID = [431, 451, 456]; // id currencies usd, eur, rub
+  
 
 let endDateValue = (endDate.value = `${toInputDate()}`),
   startDateValue = (startDate.value = `${getDaysPast(6)}`),
-  dateLimits = 6; // a week or no limits
+  dateLimits = 6, // a week or no limits
+  dataR = {},
+  labels = [];
 
 async function getData() {
   try {
     cleanTable(document.querySelectorAll("td"));
     //if we don't need the date limits ↓
-    // dateLimits = new Date(endDateValue).getDate() - new Date(startDateValue).getDate();
+    let dateLimits = Math.abs(new Date(endDateValue).getDate() - new Date(startDateValue).getDate());
 
     for (let i = dateLimits; i >= 0; i--) {
       let date = getDaysPast(i);
-      thead.innerHTML += `<td>${date.replace(/-/g, "/")}</td>`; // create date header
+      console.log(date);
+      labels.push(date.replace(/-/g, "."));
+      thead.innerHTML += `<td>${date.replace(/-/g, ".")}</td>`; // create date header
 
       //take the currency one by one
       for (let j = 0; j < 3; j++) {
@@ -32,41 +37,43 @@ async function getData() {
             const curName = data.Cur_Abbreviation,
               rate = data.Cur_OfficialRate,
               tr = tbody.querySelector(`.${curName}`);
-
+              dataR[curID[j]] === undefined ? dataR[curID[j]] = [rate] : dataR[curID[j]].push(rate);
             tr.innerHTML += `<td>${rate}</td>`; // create the cell with rate
           });
       }
     }
     checkRate(); // find min and max values
+    myChart();
   } catch (error) {
     alert(error);
   }
 }
 
 getData();
+
 input.addEventListener("keyup", search);
 // if we have a date limits
-startDate.addEventListener("change", () => {
-  startDateValue = datePeriod.querySelector(".startDate").value;
-  //automatically change another input value ( startDateValue + week )
-  endDateValue = toInputDate(startDateValue, dateLimits, true);
-  datePeriod.querySelector(".endDate").value = endDateValue;
-  getData();
-});
-endDate.addEventListener("change", () => {
-  endDateValue = datePeriod.querySelector(".endDate").value;
-  //automatically change another input value ( endDateValue - week )
-  startDateValue = toInputDate(endDateValue, dateLimits);
-  datePeriod.querySelector(".startDate").value = startDateValue;
-  getData();
-});
-
-// if we don't need the date limits ↓// 
-// datePeriod.addEventListener("change", () => {
+// startDate.addEventListener("change", () => {
 //   startDateValue = datePeriod.querySelector(".startDate").value;
-//   endDateValue = datePeriod.querySelector(".endDate").value;
+//   //automatically change another input value ( startDateValue + week )
+//   endDateValue = toInputDate(startDateValue, dateLimits, true);
+//   datePeriod.querySelector(".endDate").value = endDateValue;
 //   getData();
 // });
+// endDate.addEventListener("change", () => {
+//   endDateValue = datePeriod.querySelector(".endDate").value;
+//   //automatically change another input value ( endDateValue - week )
+//   startDateValue = toInputDate(endDateValue, dateLimits);
+//   datePeriod.querySelector(".startDate").value = startDateValue;
+//   getData();
+// });
+
+// if we don't need the date limits ↓
+datePeriod.addEventListener("change", () => {
+  startDateValue = datePeriod.querySelector(".startDate").value;
+  endDateValue = datePeriod.querySelector(".endDate").value;
+  getData();
+});
 
 function toInputDate(date = new Date(), days = 0, operator = false) {
   if (!operator) {
@@ -121,4 +128,37 @@ function search() {
       trItem.hidden = true; // hide unnecessary elements
     }
   });
+}
+
+function myChart() {
+  let ctx = document.getElementById('myChart').getContext('2d');
+  let chart = new Chart(ctx, {
+  type: 'line',
+  
+  data: {
+      labels: labels,
+      datasets: [
+        { // График зелёного цвета
+            label: 'USD',
+            backgroundColor: 'transparent',
+            borderColor: 'green',
+            data: dataR[curID[0]],
+        },
+        { // График синего цвета
+            label: 'EUR',
+            backgroundColor: 'transparent',
+            borderColor: 'blue',
+            data: dataR[curID[1]]
+        },
+        { // График красного цвета
+            label: 'RUB',
+            backgroundColor: 'transparent',
+            borderColor: 'red',
+            data: dataR[curID[2]]
+        }],
+  },
+  
+  // Настройки графиков
+  options: {}
+});
 }
