@@ -8,40 +8,46 @@ const thead = document.querySelector("thead tr"),
   startDate = datePeriod.querySelector(".startDate"),
   endDate = datePeriod.querySelector(".endDate"),
   curID = [431, 451, 456]; // id currencies usd, eur, rub
-  
+
 
 let endDateValue = (endDate.value = `${toInputDate()}`),
   startDateValue = (startDate.value = `${getDaysPast(6)}`),
   dateLimits = 6, // a week or no limits
-  dataR = {},
-  labels = [];
+  dataR,
+  labels;
 
 async function getData() {
   try {
-    cleanTable(document.querySelectorAll("td"));
-    //if we don't need the date limits ↓
-    let dateLimits = Math.abs(new Date(endDateValue).getDate() - new Date(startDateValue).getDate());
 
+  // endDateValue = (endDate.value = `${toInputDate()}`);
+  // startDateValue = (startDate.value = `${getDaysPast(6)}`);
+  dataR = {
+    431: {},
+    451: {},
+    456: {},
+  };
+  labels = [];
+    //if we don't need the date limits ↓
+  let  dateLimits = Math.abs(new Date(endDateValue).getDate() - new Date(startDateValue).getDate());
+
+  console.log('дата' ,dateLimits);
+  console.log('округление', Math.abs(dateLimits));
     for (let i = dateLimits; i >= 0; i--) {
       let date = getDaysPast(i);
-      console.log(date);
       labels.push(date.replace(/-/g, "."));
-      thead.innerHTML += `<td>${date.replace(/-/g, ".")}</td>`; // create date header
-
-      //take the currency one by one
       for (let j = 0; j < 3; j++) {
         const api = `https://www.nbrb.by/api/exrates/rates/${curID[j]}?ondate=${date}`;
         await fetch(api)
           .then((response) => response.json())
           .then((data) => {
             const curName = data.Cur_Abbreviation,
-              rate = data.Cur_OfficialRate,
-              tr = tbody.querySelector(`.${curName}`);
-              dataR[curID[j]] === undefined ? dataR[curID[j]] = [rate] : dataR[curID[j]].push(rate);
-            tr.innerHTML += `<td>${rate}</td>`; // create the cell with rate
+              rate = data.Cur_OfficialRate;
+            dataR[curID[j]].curName = curName;
+            dataR[curID[j]].rates === undefined ? dataR[curID[j]].rates = [rate] : dataR[curID[j]].rates.push(rate);
           });
       }
     }
+    drawTable(labels, dataR);
     checkRate(); // find min and max values
     myChart();
   } catch (error) {
@@ -77,18 +83,13 @@ datePeriod.addEventListener("change", () => {
 
 function toInputDate(date = new Date(), days = 0, operator = false) {
   if (!operator) {
-    return new Date(new Date(date) - 1000 * 60 * 60 * 24 * days)
-      .toISOString()
-      .substr(0, 10);
+    return new Date(new Date(date) - 1000 * 60 * 60 * 24 * days).toISOString().substr(0, 10);
   }
-  return new Date(+new Date(date) + 1000 * 60 * 60 * 24 * days)
-    .toISOString()
-    .substr(0, 10);
+  return new Date(+new Date(date) + 1000 * 60 * 60 * 24 * days).toISOString().substr(0, 10);
 }
 
 function getDaysPast(days) {
-  const newDate = toInputDate(endDateValue, days); //get date in the past
-  return newDate;
+  return toInputDate(endDateValue, days); //get date in the past
 }
 
 function cleanTable(td) {
@@ -97,6 +98,19 @@ function cleanTable(td) {
       element.parentNode.removeChild(element);
     });
   }
+}
+
+function drawTable(date, data) {
+  cleanTable(document.querySelectorAll("td"));
+  console.log(date);
+  date.forEach(dt => thead.innerHTML += `<td>${dt}</td>`)
+  Object.keys(data).forEach((el, i) => {
+    const curName = data[el].curName,
+      tr = tbody.querySelector(`.${curName}`);
+    data[el].rates.forEach(rate => {
+      tr.innerHTML += `<td>${rate}</td>`;
+    })
+  });
 }
 
 function checkRate() {
@@ -133,32 +147,32 @@ function search() {
 function myChart() {
   let ctx = document.getElementById('myChart').getContext('2d');
   let chart = new Chart(ctx, {
-  type: 'line',
-  
-  data: {
+    type: 'line',
+
+    data: {
       labels: labels,
-      datasets: [
-        { // График зелёного цвета
-            label: 'USD',
-            backgroundColor: 'transparent',
-            borderColor: 'green',
-            data: dataR[curID[0]],
+      datasets: [{ // График зелёного цвета
+          label: 'USD',
+          backgroundColor: 'transparent',
+          borderColor: 'green',
+          data: dataR[curID[0]].rates,
         },
         { // График синего цвета
-            label: 'EUR',
-            backgroundColor: 'transparent',
-            borderColor: 'blue',
-            data: dataR[curID[1]]
+          label: 'EUR',
+          backgroundColor: 'transparent',
+          borderColor: 'blue',
+          data: dataR[curID[1]].rates
         },
         { // График красного цвета
-            label: 'RUB',
-            backgroundColor: 'transparent',
-            borderColor: 'red',
-            data: dataR[curID[2]]
-        }],
-  },
-  
-  // Настройки графиков
-  options: {}
-});
+          label: 'RUB',
+          backgroundColor: 'transparent',
+          borderColor: 'red',
+          data: dataR[curID[2]].rates
+        }
+      ],
+    },
+
+    // Настройки графиков
+    options: {}
+  });
 }
